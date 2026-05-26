@@ -40,13 +40,14 @@ final class KappelaUser
     ) {
         $http = new HttpClient($baseUrl, $apiKey, 'X-Api-Key', $maxRetries, $timeout);
 
-        $userBase = '/user';
-        $this->messages = new MessagesResource($http, $userBase);
-        $this->chats    = new ChatsResource($http, $userBase);
-        $this->profile  = new UserProfileResource($http, $userBase);
+        $base = '/v1/me';
+        $this->messages = new MessagesResource($http, $base);
+        $this->chats    = new ChatsResource($http, $base);
+        $this->profile  = new UserProfileResource($http, $base);
 
+        // User WS auth via query string
         $wsUrl    = str_replace(['https://', 'http://'], ['wss://', 'ws://'], $baseUrl);
-        $this->ws = new WsClient($wsUrl . '/user/ws', $apiKey, 'X-Api-Key', $wsMaxRetries);
+        $this->ws = new WsClient($wsUrl . $base . '/ws?api_key=' . urlencode($apiKey), '', '', $wsMaxRetries);
         $this->ws->onMessage(fn(array $payload) => $this->dispatch($payload));
         $this->ws->onConnected(function () { if ($this->onConnected !== null) ($this->onConnected)(); });
         $this->ws->onDisconnected(function (int $code, string $reason) {

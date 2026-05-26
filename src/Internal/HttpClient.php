@@ -22,7 +22,7 @@ final class HttpClient
     public function __construct(
         private readonly string $baseUrl,
         private readonly string $token,
-        private readonly string $authHeader,
+        private readonly string $authHeader,  // empty string = no auth header (bot auth via URL path)
         int $maxRetries = 2,
         float $timeout  = 30.0,
     ) {
@@ -86,6 +86,9 @@ final class HttpClient
 
     private function headers(): array
     {
+        if ($this->authHeader === '') {
+            return [];
+        }
         return [$this->authHeader => $this->token];
     }
 
@@ -106,12 +109,18 @@ final class HttpClient
                     requestId:    $requestId,
                 );
             }
-            throw KappelaError::fromArray($data, $status, $requestId);
+            // API error fields may be under 'error'/'error_code' or 'message'/'code'
+            $errBody = [
+                'message' => $data['error']      ?? $data['message'] ?? 'Unknown error',
+                'code'    => $data['error_code'] ?? $data['code']    ?? KappelaError::INTERNAL_ERROR,
+            ];
+            throw KappelaError::fromArray($errBody, $status, $requestId);
         }
         if ($data === null) {
             throw new \RuntimeException("Invalid JSON response: " . substr($body, 0, 200));
         }
-        return $data;
+        // API wraps successful responses in {"ok": true, "result": {...}}
+        return $data['result'] ?? $data;
     }
 
     private function retryMiddleware(int $maxRetries): callable

@@ -25,8 +25,8 @@ final class WsClient
 
     public function __construct(
         private readonly string $wsUrl,
-        private readonly string $token,
-        private readonly string $authHeader,
+        string $token      = '',   // unused — auth is embedded in $wsUrl
+        string $authHeader = '',   // unused — kept for API compatibility
         private readonly int $maxRetries = 12,
     ) {}
 
@@ -43,7 +43,6 @@ final class WsClient
         while ($this->running) {
             try {
                 $this->socket = new WsSocket($this->wsUrl, [
-                    'headers'       => [$this->authHeader => $this->token],
                     'timeout'       => 30,
                     'persistent'    => false,
                     'fragment_size' => 4096,

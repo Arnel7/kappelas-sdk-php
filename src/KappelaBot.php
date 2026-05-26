@@ -40,16 +40,17 @@ final class KappelaBot
         float  $timeout     = 30.0,
         int    $wsMaxRetries = 12,
     ) {
-        $http = new HttpClient($baseUrl, $token, 'Authorization', $maxRetries, $timeout);
+        // Bot authenticates via URL path: /v1/<token> — no auth header needed
+        $base = '/v1/' . $token;
+        $http = new HttpClient($baseUrl, $token, '', $maxRetries, $timeout);
 
-        $botBase = '/bot';
-        $this->messages = new MessagesResource($http, $botBase);
-        $this->chats    = new ChatsResource($http, $botBase);
-        $this->webhooks = new WebhooksResource($http, $botBase);
-        $this->profile  = new BotProfileResource($http, $botBase);
+        $this->messages = new MessagesResource($http, $base);
+        $this->chats    = new ChatsResource($http, $base);
+        $this->webhooks = new WebhooksResource($http, $base);
+        $this->profile  = new BotProfileResource($http, $base);
 
         $wsUrl    = str_replace(['https://', 'http://'], ['wss://', 'ws://'], $baseUrl);
-        $this->ws = new WsClient($wsUrl . '/bot/ws', $token, 'Authorization', $wsMaxRetries);
+        $this->ws = new WsClient($wsUrl . $base . '/ws', '', '', $wsMaxRetries);
         $this->ws->onMessage(fn(array $payload) => $this->dispatch($payload));
         $this->ws->onConnected(function () { if ($this->onConnected !== null) ($this->onConnected)(); });
         $this->ws->onDisconnected(function (int $code, string $reason) {

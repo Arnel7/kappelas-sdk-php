@@ -151,6 +151,11 @@ if (!file_exists($connFlag)) {
 runHttpTests($bot, $chatId, $pngBytes, $wavBytes, $pdfBytes);
 printSummary();
 
+// Laisser 30 secondes pour tester les clics de boutons en temps réel
+echo "\n[→] En attente de clics de boutons (30s)... Clique sur un bouton dans Kappela !\n";
+sleep(30);
+echo "[→] Fin du test interactif.\n";
+
 posix_kill($pid, SIGTERM);
 pcntl_waitpid($pid, $status);
 exit($failed > 0 ? 1 : 0);
