@@ -82,7 +82,10 @@ final class KappelaUser
         $type = $payload['type'] ?? null;
         $data = $payload['data'] ?? $payload;
 
-        if ($type === 'callback_query' || isset($data['callback_data'])) {
+        $isCallback = $type === 'callback_query'
+            || ($type === null && isset($data['callback_data']));
+
+        if ($isCallback) {
             if ($this->onCallbackQuery !== null) {
                 ($this->onCallbackQuery)(CallbackQuery::fromArray($data));
             }

@@ -85,9 +85,12 @@ if ($env = getenv('CHAT_ID')) {
 
 $bot = new KappelaBot($token);
 
-$connected = false;
-$bot->onConnected(function () use (&$connected, $chatId) {
-    $connected = true;
+// Use a temp file for IPC — the forked child writes to it, the parent reads it.
+// A plain PHP variable cannot be shared across pcntl_fork() address spaces.
+$connFlag = sys_get_temp_dir() . '/kappela_ws_connected_' . getmypid();
+
+$bot->onConnected(function () use ($connFlag, $chatId) {
+    file_put_contents($connFlag, '1');
     echo "[✓] Connecté — chat_id cible : $chatId\n\n";
 });
 
@@ -96,7 +99,7 @@ $bot->onError(function (\Throwable $e) {
 });
 
 // Répondre aux clics de boutons pendant les tests
-$bot->onCallbackQuery(function (CallbackQuery $cb) use ($bot, $chatId) {
+$bot->onCallbackQuery(function (CallbackQuery $cb) use ($bot) {
     $nom = $cb->senderNom ?? $cb->senderId;
     echo "\n[→] Bouton cliqué — chat_id={$cb->chatId} sender=\"$nom\" data=\"{$cb->callbackData}\"\n";
     try {
@@ -109,36 +112,41 @@ $bot->onCallbackQuery(function (CallbackQuery $cb) use ($bot, $chatId) {
     }
 });
 
-// ─── Lancer la connexion WebSocket dans un thread séparé (via fork) ──────────
-// PHP n'a pas de goroutines — on lance la boucle WS en arrière-plan via pcntl_fork
-// Si pcntl n'est pas disponible, on fait les tests HTTP directement (sans WS).
+// ─── Lancer la connexion WebSocket dans un processus enfant ──────────────────
+// All handlers and the bot object are configured before fork so the child
+// inherits a complete copy. IPC via a temp file lets the parent detect connection.
 
-$pid = function_exists('pcntl_fork') ? pcntl_fork() : -2;
-
-if ($pid === -2) {
-    // pcntl non disponible — on ne peut pas tester le WS, on fait les tests HTTP seuls
+if (!function_exists('pcntl_fork')) {
     echo "[!] pcntl_fork non disponible — tests HTTP uniquement (pas de WS)\n\n";
     runHttpTests($bot, $chatId, $pngBytes, $wavBytes, $pdfBytes);
     printSummary();
     exit($failed > 0 ? 1 : 0);
 }
 
+$pid = pcntl_fork();
+if ($pid === -1) {
+    fwrite(STDERR, "pcntl_fork() a échoué\n");
+    exit(1);
+}
+
 if ($pid === 0) {
-    // Processus enfant : boucle WebSocket
+    // Processus enfant : boucle WebSocket (blocking)
     $bot->start();
     exit(0);
 }
 
-// Processus parent : attendre la connexion, puis lancer les tests
+// Processus parent : attendre que l'enfant signale la connexion via le fichier IPC
 $deadline = time() + 10;
-while (!$connected && time() < $deadline) {
+while (!file_exists($connFlag) && time() < $deadline) {
     usleep(100_000);
 }
-if (!$connected) {
+if (!file_exists($connFlag)) {
     echo "[✗] Timeout connexion WebSocket\n";
     posix_kill($pid, SIGTERM);
+    @unlink($connFlag);
     exit(1);
 }
+@unlink($connFlag);
 
 runHttpTests($bot, $chatId, $pngBytes, $wavBytes, $pdfBytes);
 printSummary();

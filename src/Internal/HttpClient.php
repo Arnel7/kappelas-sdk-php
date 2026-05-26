@@ -91,13 +91,25 @@ final class HttpClient
 
     private function decode(ResponseInterface $response): array
     {
-        $body   = (string) $response->getBody();
-        $status = $response->getStatusCode();
-        $data   = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        $body      = (string) $response->getBody();
+        $status    = $response->getStatusCode();
+        $requestId = $response->getHeaderLine('X-Request-Id') ?: null;
 
+        // Decode JSON; on non-JSON error bodies synthesize a KappelaError with the raw body
+        $data = json_decode($body, true, 512);
         if ($status >= 400) {
-            $requestId = $response->getHeaderLine('X-Request-Id') ?: null;
-            throw KappelaError::fromArray($data, $status, $requestId ?: null);
+            if (!is_array($data)) {
+                throw new KappelaError(
+                    errorMessage: "HTTP $status — " . substr($body, 0, 200),
+                    code:         KappelaError::INTERNAL_ERROR,
+                    status:       $status,
+                    requestId:    $requestId,
+                );
+            }
+            throw KappelaError::fromArray($data, $status, $requestId);
+        }
+        if ($data === null) {
+            throw new \RuntimeException("Invalid JSON response: " . substr($body, 0, 200));
         }
         return $data;
     }

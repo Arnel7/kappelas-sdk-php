@@ -12,7 +12,6 @@
     "require": {
         "php": ">=8.1",
         "guzzlehttp/guzzle": "^7.0",
-        "guzzlehttp/retry-middleware": "^1.0",
         "textalk/websocket": "^1.6"
     },
     "require-dev": {
