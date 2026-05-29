@@ -10,7 +10,7 @@ final class CallbackQuery
         public readonly int     $chatId,
         public readonly string  $senderId,
         public readonly string  $callbackData,
-        public readonly ?string $senderNom      = null,
+        public readonly ?string $senderName     = null,
         public readonly ?string $senderUsername = null,
         public readonly ?int    $sentAt         = null,
     ) {}
@@ -21,7 +21,7 @@ final class CallbackQuery
             chatId:         (int) ($d['chat_id']          ?? 0),
             senderId:       $d['sender_id']               ?? '',
             callbackData:   $d['callback_data']           ?? '',
-            senderNom:      $d['sender_nom']              ?? null,
+            senderName:     $d['sender_name'] ?? $d['sender_nom'] ?? null,
             senderUsername: $d['sender_username']         ?? null,
             sentAt:         isset($d['sent_at']) ? (int) $d['sent_at'] : null,
         );
