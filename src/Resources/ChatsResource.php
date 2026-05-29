@@ -79,7 +79,7 @@ final class ChatsResource
      */
     public function getMyGroups(): GetMyGroupsResult
     {
-        $raw = $this->http->get($this->base . '/getMyGroups');
+        $raw = $this->http->post($this->base . '/getMyGroups', []);
         // API may return the array directly or wrapped in {'groups': [...]}
         if (isset($raw[0]) || $raw === []) {
             return GetMyGroupsResult::fromArray(['groups' => $raw]);
@@ -148,7 +148,9 @@ final class ChatsResource
      */
     public function getAdministrators(array $params): GetChatAdministratorsResult
     {
-        $raw = $this->http->get($this->base . '/getChatAdministrators?chat_id=' . (int) $params['chat_id']);
+        $raw = $this->http->post($this->base . '/getChatAdministrators', [
+            'chat_id' => $params['chat_id'],
+        ]);
         // API returns the admins array directly as result
         if (isset($raw[0]) || $raw === []) {
             return GetChatAdministratorsResult::fromArray(['admins' => $raw]);
@@ -163,10 +165,10 @@ final class ChatsResource
      */
     public function getMember(array $params): ChatMemberInfo
     {
-        $raw = $this->http->get(
-            $this->base . '/getChatMember?chat_id=' . (int) $params['chat_id']
-            . '&user_id=' . urlencode((string) $params['user_id'])
-        );
+        $raw = $this->http->post($this->base . '/getChatMember', [
+            'chat_id' => $params['chat_id'],
+            'user_id' => (string) $params['user_id'],
+        ]);
         return ChatMemberInfo::fromArray($raw);
     }
 
@@ -175,7 +177,7 @@ final class ChatsResource
     /**
      * Create an invite link (admin only).
      *
-     * @param array{chat_id: int, max_uses?: int, expires_in?: int} $params
+     * @param array{chat_id: int, max_uses?: int, expires_in?: string} $params  expires_in: "1h"|"24h"|"7d"|"30d"
      */
     public function createInviteLink(array $params): ChatInviteLink
     {
@@ -188,7 +190,7 @@ final class ChatsResource
     /**
      * Create a single-use invite link (max_uses=1).
      *
-     * @param array{chat_id: int, expires_in?: int} $params
+     * @param array{chat_id: int, expires_in?: string} $params  expires_in: "1h"|"24h"|"7d"|"30d"
      */
     public function createSingleUseInviteLink(array $params): ChatInviteLink
     {
@@ -204,7 +206,9 @@ final class ChatsResource
      */
     public function getInviteLinks(array $params): GetChatInviteLinksResult
     {
-        $raw = $this->http->get($this->base . '/getChatInviteLinks?chat_id=' . (int) $params['chat_id']);
+        $raw = $this->http->post($this->base . '/getChatInviteLinks', [
+            'chat_id' => $params['chat_id'],
+        ]);
         return GetChatInviteLinksResult::fromArray($raw);
     }
 

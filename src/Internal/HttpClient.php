@@ -33,6 +33,7 @@ final class HttpClient
             'handler'         => $stack,
             'timeout'         => $timeout,
             'connect_timeout' => 10.0,
+            'http_errors'     => false,   // let decode() convert 4xx/5xx to KappelaError
         ]);
     }
 

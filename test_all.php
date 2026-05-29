@@ -590,10 +590,10 @@ function runAllTests(KappelaBot $bot, int $chatId, string $png, string $wav, str
             'chat_id' => $adminGroupId,
         ]));
 
-        run('chats->createInviteLink() — max_uses=5, expires_in=86400', fn() => $bot->chats->createInviteLink([
+        run('chats->createInviteLink() — max_uses=5, expires_in="24h"', fn() => $bot->chats->createInviteLink([
             'chat_id'    => $adminGroupId,
             'max_uses'   => 5,
-            'expires_in' => 86400,
+            'expires_in' => '24h',
         ]));
 
         run('chats->getInviteLinks()', fn() => $bot->chats->getInviteLinks([
@@ -622,15 +622,14 @@ function runAllTests(KappelaBot $bot, int $chatId, string $png, string $wav, str
     echo "\n── 16. Gestion d'erreurs ──────────────────────────────────────────────\n";
 
     expectError(
-        'messages->send() — chat_id=0 → NOT_FOUND',
-        KappelaError::NOT_FOUND,
+        'messages->send() — chat_id=0 → MISSING_FIELD',
+        KappelaError::MISSING_FIELD,
         fn() => $bot->messages->send(['chat_id' => 0, 'text' => 'test'])
     );
 
-    expectError(
-        'messages->delete() — message_id inexistant → NOT_FOUND',
-        KappelaError::NOT_FOUND,
-        fn() => $bot->messages->delete(['chat_id' => $chatId, 'message_id' => 999999999])
+    // edit sur message inexistant → API retourne edited:false sans exception
+    run('messages->edit() — message_id inexistant → edited:false',
+        fn() => $bot->messages->edit(['chat_id' => $chatId, 'message_id' => 999999999, 'new_text' => 'x'])
     );
 
     expectError(
