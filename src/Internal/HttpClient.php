@@ -104,7 +104,7 @@ final class HttpClient
             if (!is_array($data)) {
                 throw new KappelaError(
                     errorMessage: "HTTP $status — " . substr($body, 0, 200),
-                    code:         KappelaError::INTERNAL_ERROR,
+                    errorCode:    KappelaError::INTERNAL_ERROR,
                     status:       $status,
                     requestId:    $requestId,
                 );

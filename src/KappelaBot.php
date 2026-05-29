@@ -12,12 +12,13 @@ use Kappelas\Resources\MessagesResource;
 use Kappelas\Resources\WebhooksResource;
 use Kappelas\Types\CallbackQuery;
 use Kappelas\Types\Message;
+use Kappelas\Types\SendResult;
 
 final class KappelaBot
 {
-    public readonly MessagesResource $messages;
-    public readonly ChatsResource    $chats;
-    public readonly WebhooksResource $webhooks;
+    public readonly MessagesResource   $messages;
+    public readonly ChatsResource      $chats;
+    public readonly WebhooksResource   $webhooks;
     public readonly BotProfileResource $profile;
 
     private WsClient $ws;
@@ -35,9 +36,9 @@ final class KappelaBot
 
     public function __construct(
         private readonly string $token,
-        string $baseUrl     = 'https://api.kappelas.com',
-        int    $maxRetries  = 2,
-        float  $timeout     = 30.0,
+        string $baseUrl      = 'https://api.kappelas.com',
+        int    $maxRetries   = 2,
+        float  $timeout      = 30.0,
         int    $wsMaxRetries = 12,
     ) {
         // Bot authenticates via URL path: /v1/<token> — no auth header needed
@@ -64,6 +65,20 @@ final class KappelaBot
     public function onConnected(callable $fn): void      { $this->onConnected     = $fn; }
     public function onDisconnected(callable $fn): void   { $this->onDisconnected  = $fn; }
     public function onError(callable $fn): void          { $this->onError         = $fn; }
+
+    /**
+     * Reply to a received message, injecting reply_to_id automatically.
+     *
+     * @param array{reply_markup?: array, delete_previous?: bool} $options
+     */
+    public function reply(Message $msg, string $text, array $options = []): SendResult
+    {
+        return $this->messages->send(array_merge([
+            'chat_id'     => $msg->chatId,
+            'text'        => $text,
+            'reply_to_id' => $msg->id,
+        ], $options));
+    }
 
     /**
      * Start the WebSocket loop — this call blocks until stop() is called.
@@ -95,8 +110,9 @@ final class KappelaBot
         $type = $payload['type'] ?? null;
         $data = $payload['data'] ?? $payload;
 
-        $isCallback = $type === 'callback_query'
-            || ($type === null && isset($data['callback_data']));
+        // Both 'callback_query' (WS) and 'callback' (webhook) are callback events
+        $isCallback = $type === 'callback_query' || $type === 'callback'
+            || isset($data['callback_data']);
 
         if ($isCallback) {
             if ($this->onCallbackQuery !== null) {

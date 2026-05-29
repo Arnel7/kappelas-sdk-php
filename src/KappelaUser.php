@@ -11,11 +11,12 @@ use Kappelas\Resources\MessagesResource;
 use Kappelas\Resources\UserProfileResource;
 use Kappelas\Types\CallbackQuery;
 use Kappelas\Types\Message;
+use Kappelas\Types\SendResult;
 
 final class KappelaUser
 {
-    public readonly MessagesResource   $messages;
-    public readonly ChatsResource      $chats;
+    public readonly MessagesResource    $messages;
+    public readonly ChatsResource       $chats;
     public readonly UserProfileResource $profile;
 
     private WsClient $ws;
@@ -63,6 +64,20 @@ final class KappelaUser
     public function onError(callable $fn): void          { $this->onError         = $fn; }
 
     /**
+     * Reply to a received message, injecting reply_to_id automatically.
+     *
+     * @param array{reply_markup?: array, delete_previous?: bool} $options
+     */
+    public function reply(Message $msg, string $text, array $options = []): SendResult
+    {
+        return $this->messages->send(array_merge([
+            'chat_id'     => $msg->chatId,
+            'text'        => $text,
+            'reply_to_id' => $msg->id,
+        ], $options));
+    }
+
+    /**
      * Start the WebSocket loop — blocks until stop() is called.
      */
     public function start(): void
@@ -83,8 +98,8 @@ final class KappelaUser
         $type = $payload['type'] ?? null;
         $data = $payload['data'] ?? $payload;
 
-        $isCallback = $type === 'callback_query'
-            || ($type === null && isset($data['callback_data']));
+        $isCallback = $type === 'callback_query' || $type === 'callback'
+            || isset($data['callback_data']);
 
         if ($isCallback) {
             if ($this->onCallbackQuery !== null) {

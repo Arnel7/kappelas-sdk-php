@@ -1,6 +1,6 @@
 {
     "name": "kappelas/kappelas-sdk-php",
-    "description": "Official PHP SDK for the Kappela messaging platform",
+    "description": "Official PHP SDK for the Kappela messaging platform — v0.2.0",
     "type": "library",
     "license": "MIT",
     "authors": [

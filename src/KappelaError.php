@@ -35,9 +35,10 @@ class KappelaError extends RuntimeException
     ];
 
     public function __construct(
-        public readonly string $errorMessage,
-        public readonly string $code,
-        public readonly int    $status,
+        public readonly string  $errorMessage,
+        /** KappelaError::NOT_FOUND, FORBIDDEN, etc. */
+        public readonly string  $errorCode,
+        public readonly int     $status,
         public readonly ?string $requestId = null,
     ) {
         parent::__construct($this->buildMessage(), $status);
@@ -47,7 +48,7 @@ class KappelaError extends RuntimeException
     {
         return new self(
             errorMessage: $body['message'] ?? 'Unknown error',
-            code:         $body['code']    ?? self::INTERNAL_ERROR,
+            errorCode:    $body['code']    ?? self::INTERNAL_ERROR,
             status:       $status,
             requestId:    $requestId,
         );
@@ -55,9 +56,9 @@ class KappelaError extends RuntimeException
 
     private function buildMessage(): string
     {
-        $hint    = self::$hints[$this->code] ?? ['Unknown error code.', ''];
-        $lines   = [
-            "KappelaError [{$this->code}] HTTP {$this->status}",
+        $hint  = self::$hints[$this->errorCode] ?? ['Unknown error code.', ''];
+        $lines = [
+            "KappelaError [{$this->errorCode}] HTTP {$this->status}",
             "  Message  : {$this->errorMessage}",
             "  Why      : {$hint[0]}",
             "  Fix      : {$hint[1]}",
