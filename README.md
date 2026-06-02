@@ -119,6 +119,18 @@ $bot->resume();              // → ['paused' => false]
 $bot->getStatus();           // → ['paused' => bool]
 ```
 
+To pause only in ONE conversation (e.g. you take over a single chat while the AI keeps handling the rest):
+
+```php
+// Personal automation, scoped to one chat
+$me->pauseAutomationInChat($chatId);    // → ['done' => true]
+$me->resumeAutomationInChat($chatId);   // → ['done' => true]
+
+// Bot, scoped to one chat
+$bot->pauseInChat($chatId);             // → ['done' => true]
+$bot->resumeInChat($chatId);            // → ['done' => true]
+```
+
 ---
 
 ## PHP type hints & autocompletion

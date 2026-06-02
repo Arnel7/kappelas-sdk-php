@@ -131,6 +131,30 @@ final class KappelaUser
         return $this->http->post($this->base . '/getAutomationStatus', []);
     }
 
+    /**
+     * Pause your personal automations in ONE conversation only.
+     *
+     * Use this to take over a single chat (e.g. you start replying to X yourself):
+     * your AI stops receiving messages from that conversation while it keeps handling
+     * all your other chats. Unlike pauseAutomations(), this is scoped to one chat.
+     *
+     * @return array{done: bool}
+     */
+    public function pauseAutomationInChat(int $chatId): array
+    {
+        return $this->http->post($this->base . '/pauseAutomationInChat', ['chat_id' => $chatId]);
+    }
+
+    /**
+     * Resume your personal automations in a conversation.
+     *
+     * @return array{done: bool}
+     */
+    public function resumeAutomationInChat(int $chatId): array
+    {
+        return $this->http->post($this->base . '/resumeAutomationInChat', ['chat_id' => $chatId]);
+    }
+
     private function dispatch(array $payload): void
     {
         $type = $payload['type'] ?? null;

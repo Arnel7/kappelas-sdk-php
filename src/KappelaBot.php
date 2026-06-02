@@ -136,6 +136,28 @@ final class KappelaBot
     }
 
     /**
+     * Pause this bot in ONE conversation only (the bot must be a participant).
+     * The bot stops receiving messages from that conversation while it keeps working
+     * in all its other chats. Unlike pause(), this is scoped to one conversation.
+     *
+     * @return array{done: bool}
+     */
+    public function pauseInChat(int $chatId): array
+    {
+        return $this->http->post($this->base . '/pauseBotInChat', ['chat_id' => $chatId]);
+    }
+
+    /**
+     * Resume this bot in a conversation after pauseInChat().
+     *
+     * @return array{done: bool}
+     */
+    public function resumeInChat(int $chatId): array
+    {
+        return $this->http->post($this->base . '/resumeBotInChat', ['chat_id' => $chatId]);
+    }
+
+    /**
      * Process a raw webhook payload (JSON-decoded array).
      * Use this in your HTTP handler instead of start().
      */
