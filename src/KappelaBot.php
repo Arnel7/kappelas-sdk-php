@@ -8,6 +8,7 @@ use Kappelas\Internal\HttpClient;
 use Kappelas\Internal\WsClient;
 use Kappelas\Resources\BotProfileResource;
 use Kappelas\Resources\ChatsResource;
+use Kappelas\Resources\CommunitiesResource;
 use Kappelas\Resources\MessagesResource;
 use Kappelas\Resources\WebhooksResource;
 use Kappelas\Types\CallbackQuery;
@@ -20,6 +21,7 @@ final class KappelaBot
     public readonly ChatsResource      $chats;
     public readonly WebhooksResource   $webhooks;
     public readonly BotProfileResource $profile;
+    public readonly CommunitiesResource $communities;
 
     private WsClient $ws;
 
@@ -49,6 +51,7 @@ final class KappelaBot
         $this->chats    = new ChatsResource($http, $base);
         $this->webhooks = new WebhooksResource($http, $base);
         $this->profile  = new BotProfileResource($http, $base);
+        $this->communities = new CommunitiesResource($http, $base);
 
         $wsUrl    = str_replace(['https://', 'http://'], ['wss://', 'ws://'], $baseUrl);
         $this->ws = new WsClient($wsUrl . $base . '/ws', '', '', $wsMaxRetries);

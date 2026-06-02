@@ -32,6 +32,7 @@ Build bots and personal automations with a clean, typed API.
   - [Chat member management](#chat-member-management)
   - [Invite links](#invite-links-admin-only)
   - [getMyGroups](#getmygroups)
+  - [communities](#communities)
   - [webhooks](#webhooks)
   - [profile](#profile)
 - [Keyboards](#keyboards)
@@ -476,6 +477,57 @@ foreach ($result->groups as $group) {
 ```
 
 **BotGroupEntry fields:** `chatId`, `type`, `title`, `participantCount`, `botRole`
+
+### communities
+
+Manage communities a bot belongs to: CRUD, members & roles, invite links, join
+requests, and group requests. A bot can only administer a community where it is an
+**admin**. Note: the community role (`member`/`admin`) is distinct from a group role.
+
+```php
+use Kappelas\KappelaBot;
+
+$bot = new KappelaBot('YOUR_BOT_TOKEN');
+
+// --- CRUD ---
+$c = $bot->communities->create(['name' => 'Devs', 'description' => 'Notre commu', 'requires_approval' => true]);
+$all   = $bot->communities->list();        // Community[] (each with ->role)
+$admin = $bot->communities->listAdmin();   // only those where the bot is admin
+$one   = $bot->communities->get(['community_id' => $c->id]);   // CommunityDetail (with members)
+$bot->communities->update(['community_id' => $c->id, 'description' => 'Nouvelle desc']); // only sent fields change
+$bot->communities->delete(['community_id' => $c->id]);
+$bot->communities->join(['community_id' => 42]); // ->pending === true if approval required
+
+// --- Members & roles ---
+// To make someone (person OR bot) admin: add them as member, then promote.
+$bot->communities->addMember(['community_id' => $c->id, 'user_id' => 'uuid', 'role' => 'member']);
+$bot->communities->promoteMember(['community_id' => $c->id, 'user_id' => 'uuid', 'role' => 'admin']);
+$bot->communities->banMember(['community_id' => $c->id, 'user_id' => 'uuid']); // remove a member
+$bot->communities->leave(['community_id' => $c->id]);
+
+// --- Invite links ---
+$inv  = $bot->communities->createInviteLink(['community_id' => $c->id, 'max_uses' => 10, 'expires_in' => '24h']);
+$list = $bot->communities->getInviteLinks(['community_id' => $c->id]); // CommunityInvite[]
+$bot->communities->revokeInviteLink(['community_id' => $c->id, 'code' => $inv->code]);
+$preview = $bot->communities->previewInvite(['code' => $inv->code]); // CommunityInvitePreview (no auth needed)
+$communityId = $bot->communities->acceptInvite(['code' => $inv->code]); // bot joins via code
+
+// --- Join requests (user -> community) ---
+$reqs = $bot->communities->getJoinRequests(['community_id' => $c->id]); // CommunityJoinRequest[]
+$bot->communities->approveJoinRequest(['community_id' => $c->id, 'request_id' => $reqs[0]->id]);
+$bot->communities->rejectJoinRequest(['community_id' => $c->id, 'request_id' => $reqs[0]->id]);
+
+// --- Group requests + linking groups ---
+$greqs = $bot->communities->getGroupRequests(['community_id' => $c->id]); // CommunityGroupRequest[]
+$bot->communities->approveGroupRequest(['community_id' => $c->id, 'request_id' => $greqs[0]->id]);
+$bot->communities->rejectGroupRequest(['community_id' => $c->id, 'request_id' => $greqs[0]->id]);
+$bot->communities->addGroup(['community_id' => $c->id, 'conversation_id' => 123]);
+$bot->communities->removeGroup(['community_id' => $c->id, 'conversation_id' => 123]);
+```
+
+**Community fields:** `id`, `name`, `description`, `avatarUrl`, `createdBy`,
+`announcementChannelId`, `requiresApproval`, `createdAt`, `role` (only in `list()`).
+`CommunityDetail` adds `members` (each with `userId`, `name`, `avatarUrl`, `role`).
 
 ### webhooks
 
