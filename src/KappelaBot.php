@@ -23,6 +23,8 @@ final class KappelaBot
     public readonly BotProfileResource $profile;
     public readonly CommunitiesResource $communities;
 
+    private HttpClient $http;
+    private string $base;
     private WsClient $ws;
 
     /** @var callable|null */
@@ -47,6 +49,8 @@ final class KappelaBot
         $base = '/v1/' . $token;
         $http = new HttpClient($baseUrl, $token, '', $maxRetries, $timeout);
 
+        $this->http = $http;
+        $this->base = $base;
         $this->messages = new MessagesResource($http, $base);
         $this->chats    = new ChatsResource($http, $base);
         $this->webhooks = new WebhooksResource($http, $base);
@@ -97,6 +101,38 @@ final class KappelaBot
     public function stop(): void
     {
         $this->ws->stop();
+    }
+
+    /**
+     * Pause this bot. While paused, the bot stops receiving incoming messages
+     * (no WS push, no webhook) and any send call is rejected with BOT_PAUSED,
+     * until resume() is called. Lets an owner stop an AI bot on demand.
+     *
+     * @return array{paused: bool}
+     */
+    public function pause(): array
+    {
+        return $this->http->post($this->base . '/pauseBot', []);
+    }
+
+    /**
+     * Resume this bot after pause().
+     *
+     * @return array{paused: bool}
+     */
+    public function resume(): array
+    {
+        return $this->http->post($this->base . '/resumeBot', []);
+    }
+
+    /**
+     * Get whether this bot is currently paused.
+     *
+     * @return array{paused: bool}
+     */
+    public function getStatus(): array
+    {
+        return $this->http->post($this->base . '/getBotStatus', []);
     }
 
     /**

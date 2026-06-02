@@ -19,6 +19,8 @@ final class KappelaUser
     public readonly ChatsResource       $chats;
     public readonly UserProfileResource $profile;
 
+    private HttpClient $http;
+    private string $base;
     private WsClient $ws;
 
     /** @var callable|null */
@@ -42,6 +44,8 @@ final class KappelaUser
         $http = new HttpClient($baseUrl, $apiKey, 'X-Api-Key', $maxRetries, $timeout);
 
         $base = '/v1/me';
+        $this->http = $http;
+        $this->base = $base;
         $this->messages = new MessagesResource($http, $base);
         $this->chats    = new ChatsResource($http, $base);
         $this->profile  = new UserProfileResource($http, $base);
@@ -91,6 +95,40 @@ final class KappelaUser
     public function stop(): void
     {
         $this->ws->stop();
+    }
+
+    /**
+     * Pause this account's personal automations.
+     *
+     * While paused, the account stops receiving incoming messages over /v1/me
+     * (so an AI auto-responder is never triggered) and any send call is rejected
+     * with AUTOMATIONS_PAUSED. Useful when the human owner takes over the chat.
+     *
+     * @return array{automations_paused: bool}
+     */
+    public function pauseAutomations(): array
+    {
+        return $this->http->post($this->base . '/pauseAutomations', []);
+    }
+
+    /**
+     * Resume this account's personal automations after pauseAutomations().
+     *
+     * @return array{automations_paused: bool}
+     */
+    public function resumeAutomations(): array
+    {
+        return $this->http->post($this->base . '/resumeAutomations', []);
+    }
+
+    /**
+     * Get whether this account's personal automations are currently paused.
+     *
+     * @return array{automations_paused: bool}
+     */
+    public function getAutomationStatus(): array
+    {
+        return $this->http->post($this->base . '/getAutomationStatus', []);
     }
 
     private function dispatch(array $payload): void

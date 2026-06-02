@@ -14,6 +14,7 @@ Build bots and personal automations with a clean, typed API.
 - [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Quick start](#quick-start)
+- [Pausing automations](#pausing-automations)
 - [PHP type hints & autocompletion](#php-type-hints--autocompletion)
 - [Events — WebSocket vs Webhook](#events--websocket-vs-webhook)
 - [bot->reply()](#bot-reply)
@@ -95,6 +96,27 @@ For a **webhook** setup, call `$bot->handleWebhook($payload)` instead of `$bot->
 ```php
 $payload = json_decode(file_get_contents('php://input'), true);
 $bot->handleWebhook($payload);
+```
+
+---
+
+## Pausing automations
+
+Pausing your personal automation makes your account stop receiving incoming messages over `/v1/me`, so an AI auto-responder is never triggered, and any send is rejected with `AUTOMATIONS_PAUSED` — until you resume. Pausing a bot makes it stop receiving incoming messages (no WebSocket push, no webhook) and rejects sends with `BOT_PAUSED` until resumed. This is useful when the human owner wants to take over and stop the AI.
+
+```php
+use Kappelas\KappelaUser;
+use Kappelas\KappelaBot;
+
+$me = new Kappelas\KappelaUser('sk_...');
+$me->pauseAutomations();     // → ['automations_paused' => true]
+$me->resumeAutomations();    // → ['automations_paused' => false]
+$me->getAutomationStatus();  // → ['automations_paused' => bool]
+
+$bot = new Kappelas\KappelaBot('YOUR_BOT_TOKEN');
+$bot->pause();               // → ['paused' => true]
+$bot->resume();              // → ['paused' => false]
+$bot->getStatus();           // → ['paused' => bool]
 ```
 
 ---
