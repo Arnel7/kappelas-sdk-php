@@ -7,7 +7,9 @@ namespace Kappelas;
 use Kappelas\Internal\HttpClient;
 use Kappelas\Internal\WsClient;
 use Kappelas\Resources\ChatsResource;
+use Kappelas\Resources\CommunitiesResource;
 use Kappelas\Resources\MessagesResource;
+use Kappelas\Resources\StoriesResource;
 use Kappelas\Resources\UserProfileResource;
 use Kappelas\Types\CallbackQuery;
 use Kappelas\Types\Message;
@@ -18,6 +20,8 @@ final class KappelaUser
     public readonly MessagesResource    $messages;
     public readonly ChatsResource       $chats;
     public readonly UserProfileResource $profile;
+    public readonly CommunitiesResource $communities;
+    public readonly StoriesResource     $stories;
 
     private HttpClient $http;
     private string $base;
@@ -46,9 +50,11 @@ final class KappelaUser
         $base = '/v1/me';
         $this->http = $http;
         $this->base = $base;
-        $this->messages = new MessagesResource($http, $base);
-        $this->chats    = new ChatsResource($http, $base);
-        $this->profile  = new UserProfileResource($http, $base);
+        $this->messages    = new MessagesResource($http, $base);
+        $this->chats       = new ChatsResource($http, $base);
+        $this->profile     = new UserProfileResource($http, $base);
+        $this->communities = new CommunitiesResource($http, $base);
+        $this->stories     = new StoriesResource($http, $base);
 
         // User WS auth via query string
         $wsUrl    = str_replace(['https://', 'http://'], ['wss://', 'ws://'], $baseUrl);

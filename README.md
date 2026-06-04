@@ -34,6 +34,7 @@ Build bots and personal automations with a clean, typed API.
   - [Invite links](#invite-links-admin-only)
   - [getMyGroups](#getmygroups)
   - [communities](#communities)
+  - [stories (KappelaUser only)](#stories-kappelauser-only)
   - [webhooks](#webhooks)
   - [profile](#profile)
 - [Keyboards](#keyboards)
@@ -96,6 +97,20 @@ For a **webhook** setup, call `$bot->handleWebhook($payload)` instead of `$bot->
 ```php
 $payload = json_decode(file_get_contents('php://input'), true);
 $bot->handleWebhook($payload);
+```
+
+### Personal automation
+
+Authenticate as yourself with a personal API key (`sk_...`). **`KappelaUser` exposes the same resources as `KappelaBot`** — `$me->messages`, `$me->chats` (including member management and invite links), `$me->communities`, `$me->profile`, and `$me->reply()`. In addition, `KappelaUser` has [`$me->stories`](#stories-kappelauser-only) (user-only). Collections and Hugging Face credentials are bot-only.
+
+```php
+$me = new Kappelas\KappelaUser('sk_...');
+
+$me->reply($msg, 'Got it! 👋');
+$me->communities->create(['name' => 'Devs', 'requires_approval' => true]);
+
+// User-only: stories
+$me->stories->create(['type' => 'text', 'caption' => 'Hello 👋']);
 ```
 
 ---
@@ -590,6 +605,46 @@ $profile = $bot->profile->get();
 $profile = $user->profile->get();
 // → UserProfile { id, username, nom, isBot, isPremium, avatarUrl, about }
 ```
+
+---
+
+### stories (KappelaUser only)
+
+Create and manage **stories** (ephemeral, 24 h) via `$me->stories`. Available on `KappelaUser` only — their audience is based on your private-conversation contacts.
+
+For **image/video** stories, pass `media` (a `['data', 'filename', 'content_type']` array or a file path) — the SDK uploads it automatically and uses the resulting media id. For **text/poll** stories, no upload is needed. You can also pass a pre-uploaded `media_id`.
+
+```php
+// Image story — SDK uploads the file, then creates the story
+$story = $me->stories->create([
+    'type'    => 'image',
+    'media'   => ['data' => $bytes, 'filename' => 'photo.jpg', 'content_type' => 'image/jpeg'],
+    // or simply: 'media' => '/path/to/photo.jpg',
+    'caption' => 'Sunset 🌇',
+    'audience' => 'all', // 'all' (default) | 'selected' | 'excluded'
+]);
+
+// Text story — no media
+$me->stories->create(['type' => 'text', 'caption' => 'Good morning ☀️']);
+
+// Restricted audience
+$me->stories->create(['type' => 'text', 'caption' => 'Privé', 'audience' => 'selected', 'audience_user_ids' => ['uuid']]);
+```
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `stories->create($params)` | `Story` | Create a story (uploads `media` automatically for image/video). |
+| `stories->uploadMedia($file)` | `StoryMediaUpload` | Upload story media manually and get a media id (usually unnecessary). |
+| `stories->list()` | `Story[]` | Feed of your contacts' active stories. |
+| `stories->listMine()` | `Story[]` | Your own stories. |
+| `stories->get($storyId)` | `Story` | A single story (audience-checked server-side). |
+| `stories->delete($storyId)` | `StoryActionResult` | Delete one of your stories. |
+| `stories->view($storyId)` | `StoryActionResult` | Mark a story as viewed. |
+| `stories->getViewers($storyId)` | `StoryView[]` | Who viewed your story (owner only). |
+| `stories->getPreferences()` | `StoryPreferences` | Your default audience preference. |
+| `stories->setPreferences($audience, $audienceUserIds = [])` | `StoryActionResult` | Set your default audience preference. |
+
+> **Pause** — while automations are paused, story reads still work but creating/deleting/viewing stories is rejected with `AUTOMATIONS_PAUSED`.
 
 ---
 
