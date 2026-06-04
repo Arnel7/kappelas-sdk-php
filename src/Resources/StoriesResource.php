@@ -31,11 +31,16 @@ final class StoriesResource
      * Pour `image`/`video` : fournir `media` (uploadé automatiquement) ou un `media_id`
      * déjà uploadé. Pour `text`/`poll` : juste `caption`.
      *
+     * `link` (+ optional `link_label`) attaches a clickable CTA link shown over the
+     * story in the Kappela apps.
+     *
      * @param array{
      *   type: string,
      *   media?: array{data: string, filename: string, content_type: string}|string,
      *   media_id?: string,
      *   caption?: string,
+     *   link?: string,
+     *   link_label?: string,
      *   audience?: string,
      *   audience_user_ids?: string[],
      * } $params
@@ -56,7 +61,19 @@ final class StoriesResource
         if ($mediaId !== null && $mediaId !== '') {
             $body['media_id'] = $mediaId;
         }
-        foreach (['caption', 'audience', 'audience_user_ids'] as $k) {
+
+        // Le lien CTA est porté dans la caption en JSON ({text, link, linkLabel}) —
+        // format lu par les apps Kappela (pas de champ backend dédié).
+        if (!empty($params['link'])) {
+            $env = ['text' => (string) ($params['caption'] ?? ''), 'link' => (string) $params['link']];
+            if (!empty($params['link_label'])) {
+                $env['linkLabel'] = (string) $params['link_label'];
+            }
+            $body['caption'] = json_encode($env, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } elseif (array_key_exists('caption', $params)) {
+            $body['caption'] = $params['caption'];
+        }
+        foreach (['audience', 'audience_user_ids'] as $k) {
             if (array_key_exists($k, $params)) {
                 $body[$k] = $params[$k];
             }
