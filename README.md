@@ -260,8 +260,19 @@ $cb->sentAt          // ?int
 
 ### messages
 
+> **Recipient — `chat_id` or `user_id`.** Every send / edit / delete / typing method
+> accepts **either** `chat_id` (int) **or** `user_id` (string UUID). With `user_id` the
+> message is routed to your 1-to-1 private chat with that user — a **bot** requires the
+> conversation to already exist (`FORBIDDEN` otherwise); a **user** creates it
+> automatically (find-or-create). For `edit` / `delete` the conversation must exist.
+>
+> ```php
+> $bot->messages->send(['user_id' => 'f19f2127-…', 'text' => 'Hi']);
+> $me->messages->sendPhoto(['user_id' => $cb->senderId, 'file' => $file]);
+> ```
+
 ```php
-// Send text
+// Send text — by chat_id or user_id
 $bot->messages->send([
     'chat_id'         => 123,
     'text'            => 'Hello!',
@@ -270,6 +281,14 @@ $bot->messages->send([
     'delete_previous' => true,    // optional
 ]);
 // → SendResult { messageId: int, createdAt: ?int }
+
+// Action button — foot-of-bubble copy / link / join button (takes precedence over reply_markup).
+// type ∈ copy_text | external_link | internal_link | join
+$bot->messages->send([
+    'chat_id'       => 123,
+    'text'          => 'Your code is 837192',
+    'action_button' => ['label' => 'Copy code', 'type' => 'copy_text', 'value' => '837192'],
+]);
 
 // Send media
 $bot->messages->sendPhoto([

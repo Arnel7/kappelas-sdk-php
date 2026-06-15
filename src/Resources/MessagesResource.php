@@ -22,20 +22,32 @@ final class MessagesResource
     /**
      * Send a text message.
      *
+     * Recipient: provide EITHER `chat_id` (int) OR `user_id` (string UUID). With
+     * `user_id` the message goes to your private chat with that user — a bot requires
+     * the conversation to already exist; a user creates it (find-or-create).
+     *
+     * `action_button` renders a foot-of-bubble button (copy / link / join), distinct
+     * from inline keyboards; it takes precedence over `reply_markup`. Shape:
+     * `['label' => string, 'type' => 'copy_text'|'external_link'|'internal_link'|'join', 'value' => string]`.
+     *
      * @param array{
-     *   chat_id: int,
+     *   chat_id?: int,
+     *   user_id?: string,
      *   text: string,
      *   reply_markup?: array,
+     *   action_button?: array{label: string, type: string, value: string},
      *   reply_to_id?: int,
      *   delete_previous?: bool,
      * } $params
      */
     public function send(array $params): SendResult
     {
-        $body = ['chat_id' => $params['chat_id'], 'text' => $params['text']];
-        if (isset($params['reply_markup']))    $body['reply_markup']    = $params['reply_markup'];
-        if (isset($params['reply_to_id']))     $body['reply_to_id']     = $params['reply_to_id'];
-        if (!empty($params['delete_previous'])) $body['delete_previous'] = true;
+        $body = self::recipient($params);
+        $body['text'] = $params['text'];
+        if (isset($params['reply_markup']))     $body['reply_markup']     = $params['reply_markup'];
+        if (isset($params['action_button']))    $body['action_button']    = $params['action_button'];
+        if (isset($params['reply_to_id']))      $body['reply_to_id']      = $params['reply_to_id'];
+        if (!empty($params['delete_previous'])) $body['delete_previous']  = true;
         return SendResult::fromArray($this->http->post($this->base . '/sendMessage', $body));
     }
 
@@ -122,10 +134,8 @@ final class MessagesResource
      */
     public function sendCarousel(array $params): SendCarouselResult
     {
-        $body = [
-            'chat_id'  => $params['chat_id'],
-            'carousel' => $params['carousel'],
-        ];
+        $body = self::recipient($params);
+        $body['carousel'] = $params['carousel'];
         if (isset($params['text']))          $body['text']          = $params['text'];
         if (isset($params['reply_to_id']))   $body['reply_to_id']   = $params['reply_to_id'];
         if (isset($params['quick_reply_buttons'])) {
@@ -144,10 +154,9 @@ final class MessagesResource
      */
     public function sendTyping(array $params): TypingResult
     {
-        return TypingResult::fromArray($this->http->post($this->base . '/sendTyping', [
-            'chat_id'   => $params['chat_id'],
-            'is_typing' => $params['is_typing'] ?? true,
-        ]));
+        $body = self::recipient($params);
+        $body['is_typing'] = $params['is_typing'] ?? true;
+        return TypingResult::fromArray($this->http->post($this->base . '/sendTyping', $body));
     }
 
     /**
@@ -157,7 +166,8 @@ final class MessagesResource
      */
     public function edit(array $params): EditMessageResult
     {
-        $body = ['chat_id' => $params['chat_id'], 'message_id' => $params['message_id']];
+        $body = self::recipient($params);
+        $body['message_id'] = $params['message_id'];
         if (isset($params['new_text']))       $body['new_text']       = $params['new_text'];
         if (isset($params['new_extra_data'])) $body['new_extra_data'] = $params['new_extra_data'];
         return EditMessageResult::fromArray($this->http->post($this->base . '/editMessage', $body));
@@ -170,17 +180,35 @@ final class MessagesResource
      */
     public function delete(array $params): DeleteResult
     {
-        return DeleteResult::fromArray($this->http->post($this->base . '/deleteMessage', [
-            'chat_id'    => $params['chat_id'],
-            'message_id' => $params['message_id'],
-        ]));
+        $body = self::recipient($params);
+        $body['message_id'] = $params['message_id'];
+        return DeleteResult::fromArray($this->http->post($this->base . '/deleteMessage', $body));
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
 
+    /**
+     * Build the recipient part of a request — `chat_id` or `user_id`.
+     *
+     * @param array{chat_id?: int, user_id?: string} $params
+     * @return array{chat_id?: int}|array{user_id?: string}
+     */
+    private static function recipient(array $params): array
+    {
+        if (isset($params['user_id'])) return ['user_id' => $params['user_id']];
+        if (isset($params['chat_id'])) return ['chat_id' => $params['chat_id']];
+        throw new \InvalidArgumentException('either chat_id or user_id is required');
+    }
+
     private function sendMedia(string $path, array $params): array
     {
-        $fields = ['chat_id' => (string) $params['chat_id']];
+        if (isset($params['user_id'])) {
+            $fields = ['user_id' => (string) $params['user_id']];
+        } elseif (isset($params['chat_id'])) {
+            $fields = ['chat_id' => (string) $params['chat_id']];
+        } else {
+            throw new \InvalidArgumentException('either chat_id or user_id is required');
+        }
         if (isset($params['caption']))         $fields['caption']         = $params['caption'];
         if (isset($params['reply_to_id']))     $fields['reply_to_id']     = (string) $params['reply_to_id'];
         if (!empty($params['delete_previous'])) $fields['delete_previous'] = 'true';
