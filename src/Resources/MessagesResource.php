@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Kappelas\Resources;
 
 use Kappelas\Internal\HttpClient;
+use Kappelas\KappelaError;
 use Kappelas\Types\DeleteResult;
 use Kappelas\Types\EditMessageResult;
+use Kappelas\Types\FileInfo;
 use Kappelas\Types\SendCarouselResult;
 use Kappelas\Types\SendMediaResult;
 use Kappelas\Types\SendResult;
@@ -198,6 +200,33 @@ final class MessagesResource
         if (isset($params['user_id'])) return ['user_id' => $params['user_id']];
         if (isset($params['chat_id'])) return ['chat_id' => $params['chat_id']];
         throw new \InvalidArgumentException('either chat_id or user_id is required');
+    }
+
+    /**
+     * Resolve a media id to a short-lived signed download URL and its metadata.
+     */
+    public function getFile(string $mediaId): FileInfo
+    {
+        return FileInfo::fromArray(
+            $this->http->get($this->base . '/getFile?media_id=' . rawurlencode($mediaId)),
+        );
+    }
+
+    /**
+     * Download a media file's raw bytes by its media id.
+     * Resolves the signed URL via getFile, then fetches the file directly.
+     */
+    public function downloadFile(string $mediaId): string
+    {
+        $info = $this->getFile($mediaId);
+        if ($info->url === '') {
+            throw new KappelaError(
+                errorMessage: "getFile returned no download URL for media $mediaId",
+                code:         KappelaError::INTERNAL_ERROR,
+                status:       500,
+            );
+        }
+        return $this->http->download($info->url);
     }
 
     private function sendMedia(string $path, array $params): array

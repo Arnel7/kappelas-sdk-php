@@ -85,6 +85,16 @@ final class HttpClient
         return $this->decode($response);
     }
 
+    /**
+     * Download raw bytes from an absolute URL (e.g. a short-lived signed
+     * download URL). No auth header is sent — the signature is in the URL.
+     */
+    public function download(string $url): string
+    {
+        $response = $this->guzzle->get($url);
+        return (string) $response->getBody();
+    }
+
     private function headers(): array
     {
         if ($this->authHeader === '') {
