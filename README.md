@@ -331,6 +331,13 @@ $bot->messages->edit([
 // Delete
 $bot->messages->delete(['chat_id' => 123, 'message_id' => 456]);
 // → DeleteResult { deleted: bool }
+
+// Resolve a media_id → signed download URL + metadata
+$info = $bot->messages->getFile($msg->mediaId);
+// → FileInfo { mediaId, url, filename, contentType, sizeBytes, expiresIn }
+
+// Or download the raw bytes directly (e.g. a received voice note to transcribe)
+$bytes = $bot->messages->downloadFile($msg->mediaId); // binary string
 ```
 
 ### delete_previous
