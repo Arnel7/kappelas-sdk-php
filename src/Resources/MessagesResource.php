@@ -67,6 +67,7 @@ final class MessagesResource
      */
     public function sendPhoto(array $params): SendMediaResult
     {
+        $this->pingTyping($params);
         return SendMediaResult::fromArray($this->sendMedia('/sendPhoto', $params));
     }
 
@@ -84,6 +85,7 @@ final class MessagesResource
      */
     public function sendVideo(array $params): SendMediaResult
     {
+        $this->pingTyping($params);
         return SendMediaResult::fromArray($this->sendMedia('/sendVideo', $params));
     }
 
@@ -101,6 +103,7 @@ final class MessagesResource
      */
     public function sendDocument(array $params): SendMediaResult
     {
+        $this->pingTyping($params);
         return SendMediaResult::fromArray($this->sendMedia('/sendDocument', $params));
     }
 
@@ -118,6 +121,7 @@ final class MessagesResource
      */
     public function sendAudio(array $params): SendMediaResult
     {
+        $this->pingTyping($params);
         return SendMediaResult::fromArray($this->sendMedia('/sendAudio', $params));
     }
 
@@ -188,6 +192,26 @@ final class MessagesResource
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Fire a best-effort "typing…" indicator before a (potentially slow) media
+     * upload, so the recipient sees activity while the file transfers. A failure
+     * of the ping must never break the real send, so it is swallowed silently.
+     *
+     * @param array{chat_id?: int, user_id?: string} $params
+     */
+    private function pingTyping(array $params): void
+    {
+        try {
+            if (isset($params['user_id'])) {
+                $this->sendTyping(['user_id' => $params['user_id'], 'is_typing' => true]);
+            } elseif (isset($params['chat_id'])) {
+                $this->sendTyping(['chat_id' => $params['chat_id'], 'is_typing' => true]);
+            }
+        } catch (\Throwable $e) {
+            // ignore — the typing ping is best-effort and must not break the upload
+        }
+    }
 
     /**
      * Build the recipient part of a request — `chat_id` or `user_id`.
