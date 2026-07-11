@@ -67,7 +67,7 @@ final class MessagesResource
      */
     public function sendPhoto(array $params): SendMediaResult
     {
-        $this->pingTyping($params);
+        $this->pingTyping($params, 'sending_photo');
         return SendMediaResult::fromArray($this->sendMedia('/sendPhoto', $params));
     }
 
@@ -85,7 +85,7 @@ final class MessagesResource
      */
     public function sendVideo(array $params): SendMediaResult
     {
-        $this->pingTyping($params);
+        $this->pingTyping($params, 'sending_video');
         return SendMediaResult::fromArray($this->sendMedia('/sendVideo', $params));
     }
 
@@ -103,7 +103,7 @@ final class MessagesResource
      */
     public function sendDocument(array $params): SendMediaResult
     {
-        $this->pingTyping($params);
+        $this->pingTyping($params, 'sending_document');
         return SendMediaResult::fromArray($this->sendMedia('/sendDocument', $params));
     }
 
@@ -121,7 +121,7 @@ final class MessagesResource
      */
     public function sendAudio(array $params): SendMediaResult
     {
-        $this->pingTyping($params);
+        $this->pingTyping($params, 'recording_audio');
         return SendMediaResult::fromArray($this->sendMedia('/sendAudio', $params));
     }
 
@@ -156,12 +156,16 @@ final class MessagesResource
     /**
      * Show or hide the typing indicator.
      *
-     * @param array{chat_id: int, is_typing?: bool} $params
+     * `action` refines the indicator shown to the recipient — e.g. "recording_audio",
+     * "sending_photo", "sending_video", "sending_document" — instead of plain "typing…".
+     *
+     * @param array{chat_id: int, is_typing?: bool, action?: string} $params
      */
     public function sendTyping(array $params): TypingResult
     {
         $body = self::recipient($params);
         $body['is_typing'] = $params['is_typing'] ?? true;
+        if (!empty($params['action'])) $body['action'] = $params['action'];
         return TypingResult::fromArray($this->http->post($this->base . '/sendTyping', $body));
     }
 
@@ -200,13 +204,13 @@ final class MessagesResource
      *
      * @param array{chat_id?: int, user_id?: string} $params
      */
-    private function pingTyping(array $params): void
+    private function pingTyping(array $params, ?string $action = null): void
     {
         try {
             if (isset($params['user_id'])) {
-                $this->sendTyping(['user_id' => $params['user_id'], 'is_typing' => true]);
+                $this->sendTyping(['user_id' => $params['user_id'], 'is_typing' => true, 'action' => $action]);
             } elseif (isset($params['chat_id'])) {
-                $this->sendTyping(['chat_id' => $params['chat_id'], 'is_typing' => true]);
+                $this->sendTyping(['chat_id' => $params['chat_id'], 'is_typing' => true, 'action' => $action]);
             }
         } catch (\Throwable $e) {
             // ignore — the typing ping is best-effort and must not break the upload
