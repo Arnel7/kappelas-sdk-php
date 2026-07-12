@@ -319,14 +319,29 @@ $bot->messages->sendTyping(['chat_id' => 123]);
 $bot->messages->sendTyping(['chat_id' => 123, 'is_typing' => false]);
 // → TypingResult { typing: bool }
 
-// Edit
+// Edit — texte ET clavier ensemble (ex. un menu qui se coche au clic)
 $bot->messages->edit([
     'chat_id'        => 123,
     'message_id'     => 456,
-    'new_text'       => 'Updated text',
-    'new_extra_data' => [...],  // replacement inline keyboard
+    'new_text'       => 'Tu as choisi : ✅ Oui',
+    'new_extra_data' => [
+        'inline_keyboard' => [[
+            ['text' => '✅ Oui ✓', 'callback_data' => 'yes'],
+            ['text' => '❌ Non',   'callback_data' => 'no'],
+        ]],
+    ],
 ]);
 // → EditMessageResult { edited: bool, messageId: int }
+
+// Clavier seul (on omet 'new_text' → le texte est conservé) :
+$bot->messages->edit([
+    'chat_id'        => 123,
+    'message_id'     => 456,
+    'new_extra_data' => ['inline_keyboard' => [[['text' => 'Done ✅', 'callback_data' => 'done']]]],
+]);
+// - new_text + new_extra_data → change le texte ET le clavier
+// - new_extra_data seul (sans new_text) → change le clavier, garde le texte
+// - new_text seul → change le texte, laisse le clavier
 
 // Delete
 $bot->messages->delete(['chat_id' => 123, 'message_id' => 456]);
