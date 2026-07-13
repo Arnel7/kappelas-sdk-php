@@ -30,7 +30,9 @@ final class MessagesResource
      *
      * `action_button` renders a foot-of-bubble button (copy / link / join), distinct
      * from inline keyboards; it takes precedence over `reply_markup`. Shape:
-     * `['label' => string, 'type' => 'copy_text'|'external_link'|'internal_link'|'join', 'value' => string]`.
+     * `['label' => string, 'type' => 'copy_text'|'external_link'|'internal_link'|'join'|'open_webview', 'value' => string]`.
+     * `open_webview` opens the URL in an in-app WebView (stays inside Kappelas — ideal for payments);
+     * the page can close itself via `Kappelas.close()`, or close it remotely with {@see closeWebview()}.
      *
      * @param array{
      *   chat_id?: int,
@@ -51,6 +53,20 @@ final class MessagesResource
         if (isset($params['reply_to_id']))      $body['reply_to_id']      = $params['reply_to_id'];
         if (!empty($params['delete_previous'])) $body['delete_previous']  = true;
         return SendResult::fromArray($this->http->post($this->base . '/sendMessage', $body));
+    }
+
+    /**
+     * Remotely close the in-app WebView opened by an `open_webview` action button on the
+     * recipient's device(s). Use it when the outcome is confirmed server-side (e.g. a payment
+     * webhook) instead of relying on the web page calling `Kappelas.close()`. The event reaches
+     * all of the recipient's connected devices (personal real-time channel).
+     *
+     * @param array{chat_id: int} $params
+     * @return array{ok: bool, sent: int}
+     */
+    public function closeWebview(array $params): array
+    {
+        return $this->http->post($this->base . '/closeWebview', ['chat_id' => $params['chat_id']]);
     }
 
     /**
