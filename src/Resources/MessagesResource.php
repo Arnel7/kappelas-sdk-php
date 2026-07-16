@@ -34,12 +34,19 @@ final class MessagesResource
      * `open_webview` opens the URL in an in-app WebView (stays inside Kappelas — ideal for payments);
      * the page can close itself via `Kappelas.close()`, or close it remotely with {@see closeWebview()}.
      *
+     * `form` renders an interactive form card (choices / ranking / free text + submit button);
+     * it takes precedence over `reply_markup` and `action_button`. Answers come back as a
+     * `callback_query` whose `callback_data` is `"form::<json>"` (`{form_id, answers}`). Shape:
+     * `['title' => string, 'submit_label' => string, 'fields' => [['id' => string, 'label' => string,
+     * 'input' => 'single'|'multi'|'ranking'|'text', 'options' => string[], 'required' => bool]]]`.
+     *
      * @param array{
      *   chat_id?: int,
      *   user_id?: string,
      *   text: string,
      *   reply_markup?: array,
      *   action_button?: array{label: string, type: string, value: string},
+     *   form?: array{title: string, fields: array, submit_label?: string},
      *   reply_to_id?: int,
      *   delete_previous?: bool,
      * } $params
@@ -50,6 +57,7 @@ final class MessagesResource
         $body['text'] = $params['text'];
         if (isset($params['reply_markup']))     $body['reply_markup']     = $params['reply_markup'];
         if (isset($params['action_button']))    $body['action_button']    = $params['action_button'];
+        if (isset($params['form']))             $body['form']             = $params['form'];
         if (isset($params['reply_to_id']))      $body['reply_to_id']      = $params['reply_to_id'];
         if (!empty($params['delete_previous'])) $body['delete_previous']  = true;
         return SendResult::fromArray($this->http->post($this->base . '/sendMessage', $body));
